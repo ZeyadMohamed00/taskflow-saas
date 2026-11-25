@@ -1,40 +1,65 @@
-# TaskFlow: multi-tenant project manager (FastAPI + SQLAlchemy)
+# TaskFlow: multi-tenant SaaS project manager
 
-A small SaaS-style backend with a minimal web UI: users sign up, create **workspaces** (tenants), invite members with roles, and manage **projects** and **tasks** on a kanban board.
+Mini Trello/Asana: organizations with roles (admin / manager / member), teams, projects, tasks with assignment, comments, notifications and a statistics dashboard.
 
-> Honest scope: the UI is a single plain HTML/JS page (no React build). The focus is the backend: auth, tenant isolation, roles, tests. Docker files are provided but were **not built or run** in the environment this was written in (no Docker available); the tests and the app were run locally with Python 3.10 and SQLite.
+**Stack:** React 18 + TypeScript (Vite) · FastAPI · PostgreSQL · SQLAlchemy 2 · JWT · Pytest + Vitest · Docker.
 
-## Stack
-FastAPI, SQLAlchemy 2, SQLite (default) or PostgreSQL, JWT (PyJWT), PBKDF2 password hashing (stdlib), pytest, GitHub Actions CI.
+## What was actually verified
+| Item | Status |
+|---|---|
+| Backend tests: 20 pytest tests | **Run and passing against real PostgreSQL 16** (embedded, via the `pgserver` package) |
+| Frontend: `npm run build` (tsc + vite) and 9 Vitest tests | **Run and passing** |
+| Frontend talking to the real backend in a browser | **Not done** (tests mock `fetch`; API is covered by pytest) |
+| `docker build` / `docker compose up` | **Not run** (Docker unavailable where this was built). Files are written but unverified |
+| GitHub Actions workflow | In `ci/github-actions-ci.yml`, **not enabled and never run** (the push token lacked `workflow` scope) |
 
-## Run
+## Features
+Register/login (JWT) · organizations & per-org roles · teams · projects (search, pagination) · tasks (priority, due date, assignee, status, search/filter/pagination) · comments · notifications (on assignment and on comments) · dashboard (counts, % done, overdue, assigned to me, per-project progress) · REST API (`/docs`).
+
+## Run locally
 ```bash
+# backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload     # http://localhost:8000  (API docs: /docs)
-pytest -q                         # 7 tests
+export DATABASE_URL=postgresql+psycopg2://user:pass@localhost:5432/taskflow   # default is local SQLite
+uvicorn app.main:app --reload              # API on :8000, docs at /docs
+pytest -q                                  # uses an embedded Postgres if pgserver is installed (pip install pgserver)
+# frontend
+cd frontend && npm install
+npm run dev                                # :5173/app/ , proxies /api to :8000
+npm test && npm run build                  # build output is served by FastAPI at /app/
 ```
-With Docker (untested by the author): `docker compose up --build`.
-Set `JWT_SECRET` (32+ chars) and `DATABASE_URL` for anything beyond local use.
+Docker (unverified): `docker compose up --build`, then open http://localhost:8000/app/.
 
 ## Architecture
 ```
-Browser (static/index.html) --JSON/Bearer JWT--> FastAPI routes (app/main.py)
-   deps.py: auth + tenant checks  ->  models.py (SQLAlchemy)  ->  SQLite/Postgres
+React SPA (frontend/src) --JSON + Bearer JWT--> FastAPI (app/main.py)
+   deps.py: auth, tenant check, role check      -> SQLAlchemy models -> PostgreSQL
 ```
-- `security.py`: password hashing, token create/decode.
-- `deps.py`: `current_user`, and the helpers that load a project/task **through its workspace membership**.
-- `models.py`: User, Workspace, Membership(role), Project, Task.
+Tables: users, organizations, memberships(role), teams, team_members, projects, tasks, comments, notifications.
 
-## How it works / key decisions
-1. **Auth**: login returns a signed JWT (1h). Each request sends `Authorization: Bearer ...`; the server decodes it and loads the user. Passwords are never stored, only salted PBKDF2-SHA256 hashes.
-2. **Multi-tenancy**: every project/task belongs to a workspace; access is only via a `Membership` row. Not a member -> **404** (not 403) so ids can't be probed. Tested in `test_tenant_isolation`.
-3. **Roles**: owner (manage members), member (read/write), viewer (read only). Enforced in one function, `require_write`.
-4. **Validation**: Pydantic rejects bad input (status must be todo/doing/done, password 8+ chars). An assignee must be a member of the same workspace.
-5. **Known limits** (what I'd do next): migrations (Alembic) instead of `create_all`, refresh tokens, rate limiting, pagination, a real React frontend, an audit log.
+## Permission matrix (enforced in `app/deps.py` + routes, tested in `tests/test_permissions.py`)
+| Action | admin | manager | member |
+|---|---|---|---|
+| Add members / change roles | yes | no | no |
+| Create teams and projects | yes | yes | no |
+| Delete project | yes | no | no |
+| Create task | yes | yes | yes (assign only to self) |
+| Edit task | any | any | only tasks assigned to / created by them |
+| Reassign / delete task | yes | yes | no |
+| Comment, read everything in the org | yes | yes | yes |
+
+## Key decisions (read these to explain the project)
+1. **JWT auth**: the token holds the user id and an expiry. The server verifies the signature on every request; no session table. Downside: hard to revoke early. Passwords are salted PBKDF2-SHA256 hashes.
+2. **Tenant isolation**: everything hangs off an organization, and access is only through a `Membership` row. Non-members get **404, not 403**, so ids can't be probed. Tested for every resource type.
+3. **Roles are per organization**, not global: the same user can be admin in one org and member in another.
+4. **Authorization lives on the server**. The React app hides buttons using the same rules (`frontend/src/types.ts`), but that is only UX; the API rejects the call regardless.
+5. **Pagination/search/filter** are done in SQL (`LIMIT/OFFSET`, `ILIKE`, indexed columns) with page size capped at 100 so a client can't request everything.
+6. **Notifications** are written in the same DB transaction as the action that causes them, so they can't be lost or duplicated by a half-failure. The actor is never notified of their own action.
+7. **Invariants**: an org must keep at least one admin; assignees and teams must belong to the same org.
+
+## Known limits / next steps
+No migrations (uses `create_all`; add Alembic), no email delivery for notifications (in-app only), no real-time updates (refresh/poll), OFFSET pagination gets slow for huge tables (use keyset), no rate limiting or refresh tokens, no file attachments.
 
 ## Interview questions to prepare
-Why 404 vs 403? Why JWT and what are its downsides (no easy revocation)? How would you add Alembic? How would you scale reads? How does the ORM avoid SQL injection?
-
-## CI
-A GitHub Actions workflow is in `ci/github-actions-ci.yml`. Move it to `.github/workflows/ci.yml` to enable it. It is not enabled because the push token had no `workflow` scope, and it has not been run on GitHub.
+Why 404 vs 403? JWT vs sessions trade-offs? Why are roles per organization? How would you add Alembic migrations to a live DB? What breaks with OFFSET pagination at scale? Where would you add caching?

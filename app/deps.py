@@ -1,11 +1,18 @@
+"""Authentication + authorization helpers.
+
+Permission matrix (enforced here, tested in tests/test_permissions.py):
+  admin   : everything, incl. members/roles, deleting projects
+  manager : create teams/projects/tasks, assign anyone, edit any task, delete tasks
+  member  : create tasks, comment, edit ONLY tasks assigned to them or created by them
+"""
 from fastapi import Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 import jwt
 from .db import get_db
-from .models import User, Membership, Project, Task
+from .models import User, Membership, Project, Task, Team
 from .security import decode_token
 
-WRITE_ROLES = {"owner", "member"}
+RANK = {"member": 1, "manager": 2, "admin": 3}
 
 
 def current_user(authorization: str = Header(default=""), db: Session = Depends(get_db)) -> User:
@@ -21,30 +28,45 @@ def current_user(authorization: str = Header(default=""), db: Session = Depends(
     return user
 
 
-def membership(db: Session, user: User, workspace_id: int) -> Membership:
-    """Tenant isolation: a user only ever sees workspaces they belong to.
-    We answer 404 (not 403) so outsiders cannot probe which ids exist."""
-    m = db.query(Membership).filter_by(user_id=user.id, workspace_id=workspace_id).first()
+def membership(db: Session, user: User, org_id: int) -> Membership:
+    """Tenant isolation. Non-members get 404 (not 403) so ids cannot be probed."""
+    m = db.query(Membership).filter_by(user_id=user.id, org_id=org_id).first()
     if not m:
-        raise HTTPException(404, "Workspace not found")
+        raise HTTPException(404, "Organization not found")
     return m
 
 
-def require_write(m: Membership):
-    if m.role not in WRITE_ROLES:
-        raise HTTPException(403, "Your role is read-only")
+def require(m: Membership, minimum: str):
+    if RANK[m.role] < RANK[minimum]:
+        raise HTTPException(403, f"Requires role {minimum} or higher")
 
 
 def project_for(db: Session, user: User, project_id: int):
     p = db.get(Project, project_id)
     if not p:
         raise HTTPException(404, "Project not found")
-    return p, membership(db, user, p.workspace_id)
+    return p, membership(db, user, p.org_id)
 
 
 def task_for(db: Session, user: User, task_id: int):
     t = db.get(Task, task_id)
     if not t:
         raise HTTPException(404, "Task not found")
-    _, m = project_for(db, user, t.project_id)
-    return t, m
+    p, m = project_for(db, user, t.project_id)
+    return t, p, m
+
+
+def can_edit_task(m: Membership, user: User, t: Task) -> bool:
+    return RANK[m.role] >= RANK["manager"] or t.assignee_id == user.id or t.created_by == user.id
+
+
+def check_assignee(db: Session, org_id: int, uid: int):
+    if not db.query(Membership).filter_by(user_id=uid, org_id=org_id).first():
+        raise HTTPException(422, "Assignee must belong to the organization")
+
+
+def team_in_org(db: Session, org_id: int, team_id: int) -> Team:
+    t = db.get(Team, team_id)
+    if not t or t.org_id != org_id:
+        raise HTTPException(422, "Team not in this organization")
+    return t

@@ -1,17 +1,15 @@
 services:
   db:
     image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: taskflow
-      POSTGRES_PASSWORD: taskflow
-      POSTGRES_DB: taskflow
+    environment: {POSTGRES_USER: taskflow, POSTGRES_PASSWORD: taskflow, POSTGRES_DB: taskflow}
     volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck: {test: ["CMD-SHELL", "pg_isready -U taskflow"], interval: 3s, retries: 20}
   web:
     build: .
     environment:
       DATABASE_URL: postgresql+psycopg2://taskflow:taskflow@db:5432/taskflow
       JWT_SECRET: change-me-to-a-long-random-string-123456
     ports: ["8000:8000"]
-    depends_on: [db]
+    depends_on: {db: {condition: service_healthy}}
 volumes:
   pgdata:
