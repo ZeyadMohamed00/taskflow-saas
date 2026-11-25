@@ -1,7 +1,7 @@
 import type { Comment, Dashboard, Me, Member, Notification, Org, Page, Priority, Project, Status, Task } from "./types";
 
 // Dev: Vite proxies /api -> FastAPI. Production: served by FastAPI itself (same origin).
-export const API_BASE = import.meta.env.DEV ? "/api" : "";
+export const API_BASE: string = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? "/api" : "");
 const KEY = "tf_token";
 
 export const getToken = () => localStorage.getItem(KEY);

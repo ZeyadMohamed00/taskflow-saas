@@ -2,6 +2,8 @@ from pathlib import Path
 from datetime import date
 from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.responses import RedirectResponse
+from fastapi.middleware.cors import CORSMiddleware
+import os
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import func, or_, case
 from sqlalchemy.orm import Session
@@ -23,6 +25,10 @@ def notify(db: Session, user_id: int | None, actor_id: int, task: Task, text: st
 def create_app() -> FastAPI:
     Base.metadata.create_all(engine)
     app = FastAPI(title="TaskFlow", version="2.0.0")
+    # Frontend may be hosted on another origin (e.g. Vercel). Auth uses a Bearer header, not cookies,
+    # so allowing origins does not expose cookie sessions. Restrict with ALLOWED_ORIGINS="https://a,https://b".
+    origins = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "*").split(",") if o.strip()]
+    app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["*"], allow_headers=["*"])
 
     @app.get("/health")
     def health():
