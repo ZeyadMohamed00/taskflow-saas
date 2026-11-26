@@ -90,3 +90,7 @@ The v3 UI adds a dashboard, board, list view, projects, team and notifications p
 - Database: Neon serverless PostgreSQL (free plan).
 - Verified in a real browser as a fresh visitor (Nov 26): Try demo loads the seeded board, task detail opens, and moving a task between columns updates the UI. Also `/health`, `/docs` and registration work against Neon.
 - Cold starts on the free tier can make the first request slow. The live DB may contain demo or test data.
+
+## End-to-end test
+
+`cd frontend && npx playwright install chromium && npm run e2e` starts the API on a throwaway SQLite database and drives the real UI with Playwright: register, create a workspace, project and task, move the task, log out and log in again. It runs in CI. Writing it exposed a real gap (a new user had no way to create an organization), which is now fixed with a "Create your workspace" screen.

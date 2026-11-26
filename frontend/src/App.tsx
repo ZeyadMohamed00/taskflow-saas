@@ -21,6 +21,8 @@ function Workspace({ onLogout }: { onLogout: () => void }) {
   const [me, setMe] = useState<Me | null>(null);
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [oid, setOid] = useState<number | null>(null);
+  const [orgsLoaded, setOrgsLoaded] = useState(false);
+  const [wsName, setWsName] = useState("");
   const [projects, setProjects] = useState<Project[]>([]);
   const [pid, setPid] = useState<number | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -48,7 +50,7 @@ function Workspace({ onLogout }: { onLogout: () => void }) {
   const role = orgs.find((o) => o.id === oid)?.role;
   const project = projects.find((p) => p.id === pid);
 
-  const loadOrgs = useCallback(() => guard(async () => { const o = await api.orgs(); setOrgs(o); setOid((c) => c ?? o[0]?.id ?? null); }), [guard]);
+  const loadOrgs = useCallback(() => guard(async () => { const o = await api.orgs(); setOrgs(o); setOid((c) => c ?? o[0]?.id ?? null); setOrgsLoaded(true); }), [guard]);
   const loadTasks = useCallback(() => guard(async () => {
     if (pid === null) { setTasks([]); return; }
     const r = await api.tasks(pid, { q, status, priority, assignee_id: onlyMine && me ? me.id : undefined, size: 100 });
@@ -98,6 +100,19 @@ function Workspace({ onLogout }: { onLogout: () => void }) {
       <button className={`chip ${onlyMine ? "on" : ""}`} onClick={() => setOnlyMine(!onlyMine)}>Assigned to me</button>
     </div>
   );
+
+  if (orgsLoaded && orgs.length === 0) {
+    return (
+      <div className="login-wrap">
+        <form className="card col" style={{ maxWidth: 420, margin: "80px auto", padding: 24 }} onSubmit={(e) => { e.preventDefault(); guard(async () => { const o = await api.createOrg(wsName.trim()); setOrgs([o]); setOid(o.id); }); }}>
+          <h1>Create your workspace</h1>
+          <p className="muted">A workspace (organization) holds your teams, projects and tasks. You become its admin and can invite others later.</p>
+          <label className="f">Workspace name<input aria-label="Workspace name" value={wsName} onChange={(e) => setWsName(e.target.value)} placeholder="e.g. Acme Studio" /></label>
+          <div className="row"><button className="btn primary" disabled={!wsName.trim()}>Create workspace</button><button type="button" className="btn" onClick={onLogout}>Log out</button></div>
+        </form>
+      </div>
+    );
+  }
 
   return (
     <Shell brand="TaskFlow" tagline={orgs.find((o) => o.id === oid)?.name} page={page} onNav={(p) => setPage(p as Page)}

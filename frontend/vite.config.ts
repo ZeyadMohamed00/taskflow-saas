@@ -6,5 +6,5 @@ export default defineConfig({
   plugins: [react()],
   base: process.env.VITE_BASE ?? "/app/",
   server: { proxy: { "/api": { target: "http://localhost:8000", rewrite: (p) => p.replace(/^\/api/, "") } } },
-  test: { environment: "jsdom", globals: true, setupFiles: "./src/setup.ts" },
+  test: { exclude: ["e2e/**", "node_modules/**"], environment: "jsdom", globals: true, setupFiles: "./src/setup.ts" },
 });
