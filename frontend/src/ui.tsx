@@ -57,8 +57,8 @@ export function Modal({ title, onClose, children, drawer }: { title: string; onC
 }
 
 /* ---------- charts (plain SVG, no dependency) ---------- */
-export function BarChart({ data, height = 150, color = "var(--accent)" }: { data: { label: string; value: number }[]; height?: number; color?: string }) {
-  const max = Math.max(1, ...data.map((d) => d.value)); const w = 100 / Math.max(1, data.length);
+export function BarChart({ data, height = 150, color = "var(--accent)", max: maxProp }: { data: { label: string; value: number }[]; height?: number; color?: string; max?: number }) {
+  const max = maxProp ?? Math.max(1, ...data.map((d) => d.value)); const w = 100 / Math.max(1, data.length);
   return (
     <svg viewBox={`0 0 100 ${height / 2}`} preserveAspectRatio="none" style={{ width: "100%", height }} role="img" aria-label="Bar chart">
       {data.map((d, i) => { const h = (d.value / max) * (height / 2 - 14); return <g key={i}><rect x={i * w + w * 0.18} y={height / 2 - 12 - h} width={w * 0.64} height={Math.max(h, 0.6)} rx="1.2" fill={color}><title>{`${d.label}: ${d.value}`}</title></rect></g>; })}
