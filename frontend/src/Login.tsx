@@ -19,9 +19,22 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
     }
   }
 
+  async function tryDemo() {
+    setError("");
+    try {
+      const t = await api.demo();
+      setToken(t.access_token);
+      onLoggedIn();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
   return (
     <form className="card login" onSubmit={(e) => submit("login", e)}>
       <h2>TaskFlow</h2>
+      <button type="button" onClick={tryDemo}>Try demo (no sign-up)</button>
+      <p className="muted">Demo creates a throwaway workspace filled with synthetic sample data. Nothing real.</p>
       <input aria-label="Name" placeholder="name (register only)" value={name} onChange={(e) => setName(e.target.value)} />
       <input aria-label="Email" placeholder="email" value={email} onChange={(e) => setEmail(e.target.value)} />
       <input aria-label="Password" type="password" placeholder="password (8+ chars)" value={password} onChange={(e) => setPassword(e.target.value)} />

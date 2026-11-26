@@ -37,6 +37,7 @@ export interface TaskQuery { q?: string; status?: Status | ""; priority?: Priori
 export const api = {
   auth: (kind: "login" | "register", email: string, password: string, name = "") =>
     request<{ access_token: string }>(`/auth/${kind}`, "POST", { email, password, name }),
+  demo: () => request<{ access_token: string }>("/auth/demo", "POST", {}),
   me: () => request<Me>("/me"),
   orgs: () => request<Org[]>("/orgs"),
   createOrg: (name: string) => request<Org>("/orgs", "POST", { name }),

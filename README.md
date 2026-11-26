@@ -65,8 +65,12 @@ No migrations (uses `create_all`; add Alembic), no email delivery for notificati
 Why 404 vs 403? JWT vs sessions trade-offs? Why are roles per organization? How would you add Alembic migrations to a live DB? What breaks with OFFSET pagination at scale? Where would you add caching?
 
 ## Live deployment (free tier)
+Open the frontend and click **Try demo (no sign-up)**. It creates a throwaway admin user and an isolated org with clearly synthetic sample data (2 projects, 8 tasks, 3 members).
+
+![TaskFlow board, live demo](docs/screenshot-board.png)
+
 - Frontend (React, static, Vercel Hobby): https://taskflow-web-lilac.vercel.app
 - API (FastAPI as a Vercel Python function; interactive docs at `/docs`): https://taskflow-api-sepia-rho.vercel.app
 - Database: Neon serverless PostgreSQL (free plan).
-- Verified: `/health` and `/docs` return 200 and registration writes to Neon. Not verified: a full browser click-through of the live frontend against the live API.
+- Verified in a real browser as a fresh visitor (Nov 26): Try demo loads the seeded board, task detail opens, and moving a task between columns updates the UI. Also `/health`, `/docs` and registration work against Neon.
 - Cold starts on the free tier can make the first request slow. The live DB may contain demo or test data.

@@ -13,3 +13,4 @@ input,button,select{padding:.45rem;margin:.2rem}
 .stats{display:flex;gap:1.5rem;flex-wrap:wrap;background:#eef;border-radius:8px;padding:.7rem;margin:.7rem 0}
 .bars{min-width:220px}.toolbar{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
 .detail{position:fixed;right:0;top:0;bottom:0;width:340px;background:#fff;box-shadow:-2px 0 8px #0003;padding:1rem;overflow:auto}
+.muted{color:#667;font-size:12px;margin:4px 0}

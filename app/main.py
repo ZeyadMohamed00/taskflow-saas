@@ -45,6 +45,42 @@ def create_app() -> FastAPI:
         db.commit()
         return s.Token(access_token=create_token(u.id))
 
+    @app.post("/auth/demo", response_model=s.Token, status_code=201)
+    def demo(db: Session = Depends(get_db)):
+        """One-click demo: a fresh admin user plus an isolated org filled with clearly synthetic data."""
+        import secrets
+        from datetime import timedelta
+        tag = secrets.token_hex(3)
+        pw = hash_password(secrets.token_urlsafe(16))
+        me_ = User(email=f"demo-{tag}@demo.invalid", name="Demo Admin", password_hash=pw)
+        mate1 = User(email=f"sample-manager-{tag}@demo.invalid", name="Sample Manager", password_hash=pw)
+        mate2 = User(email=f"sample-member-{tag}@demo.invalid", name="Sample Member", password_hash=pw)
+        db.add_all([me_, mate1, mate2]); db.flush()
+        org = Organization(name="Demo Co (synthetic demo data)"); db.add(org); db.flush()
+        db.add_all([Membership(user_id=me_.id, org_id=org.id, role="admin"),
+                    Membership(user_id=mate1.id, org_id=org.id, role="manager"),
+                    Membership(user_id=mate2.id, org_id=org.id, role="member")])
+        team = Team(org_id=org.id, name="Product"); db.add(team); db.flush()
+        db.add_all([TeamMember(team_id=team.id, user_id=u.id) for u in (me_, mate1, mate2)])
+        today = date.today()
+        spec = {
+            "Website relaunch": [("Write homepage copy", "doing", "high", 2, mate2), ("Design hero section", "todo", "medium", 5, mate1),
+                                 ("Set up analytics", "done", "low", -3, me_), ("Fix mobile nav bug", "todo", "high", 1, mate2)],
+            "Mobile app v2": [("Plan release checklist", "doing", "medium", 7, mate1), ("Review crash reports", "todo", "high", 3, me_),
+                              ("Update onboarding screens", "done", "medium", -1, mate2), ("Draft changelog", "todo", "low", 10, None)],
+        }
+        first = None
+        for pname, tasks in spec.items():
+            pr = Project(org_id=org.id, team_id=team.id, name=pname, description="Synthetic demo project"); db.add(pr); db.flush()
+            for title, st, pri, due, who in tasks:
+                tk = Task(project_id=pr.id, title=title, status=st, priority=pri, due_date=today + timedelta(days=due),
+                          assignee_id=who.id if who else None, created_by=me_.id, description="Demo task (synthetic).")
+                db.add(tk); db.flush(); first = first or tk
+        db.add(Comment(task_id=first.id, author_id=mate1.id, body="Let's get this done before Friday."))
+        db.add(Notification(user_id=me_.id, task_id=first.id, text="Sample Manager commented on 'Write homepage copy'"))
+        db.commit()
+        return s.Token(access_token=create_token(me_.id))
+
     @app.post("/auth/login", response_model=s.Token)
     def login(body: s.Credentials, db: Session = Depends(get_db)):
         u = db.query(User).filter_by(email=body.email.lower()).first()
