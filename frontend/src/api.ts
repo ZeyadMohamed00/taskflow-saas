@@ -32,7 +32,7 @@ async function request<T>(path: string, method = "GET", body?: unknown): Promise
 const qs = (o: Record<string, string | number | undefined>) =>
   Object.entries(o).filter(([, v]) => v !== undefined && v !== "").map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join("&");
 
-export interface TaskQuery { q?: string; status?: Status | ""; priority?: Priority | ""; page?: number; size?: number }
+export interface TaskQuery { q?: string; assignee_id?: number; status?: Status | ""; priority?: Priority | ""; page?: number; size?: number }
 
 export const api = {
   auth: (kind: "login" | "register", email: string, password: string, name = "") =>
@@ -45,12 +45,12 @@ export const api = {
   addMember: (oid: number, email: string, role: string) => request(`/orgs/${oid}/members`, "POST", { email, role }),
   setRole: (oid: number, uid: number, role: string) => request(`/orgs/${oid}/members/${uid}`, "PATCH", { role }),
   projects: (oid: number) => request<Page<Project>>(`/orgs/${oid}/projects?size=100`),
-  createProject: (oid: number, name: string) => request<Project>(`/orgs/${oid}/projects`, "POST", { name }),
+  createProject: (oid: number, name: string, description = "") => request<Project>(`/orgs/${oid}/projects`, "POST", { name, description }),
   dashboard: (oid: number) => request<Dashboard>(`/orgs/${oid}/dashboard`),
-  tasks: (pid: number, query: TaskQuery = {}) => request<Page<Task>>(`/projects/${pid}/tasks?${qs({ size: 50, ...query })}`),
+  tasks: (pid: number, query: TaskQuery = {}) => request<Page<Task>>(`/projects/${pid}/tasks?${qs({ size: 100, ...query })}`),
   createTask: (pid: number, body: { title: string; priority?: Priority; assignee_id?: number | null; due_date?: string | null }) =>
     request<Task>(`/projects/${pid}/tasks`, "POST", body),
-  updateTask: (tid: number, patch: Partial<Pick<Task, "status" | "title" | "priority" | "assignee_id" | "due_date">>) =>
+  updateTask: (tid: number, patch: Partial<Pick<Task, "status" | "title" | "description" | "priority" | "assignee_id" | "due_date">>) =>
     request<Task>(`/tasks/${tid}`, "PATCH", patch),
   deleteTask: (tid: number) => request<void>(`/tasks/${tid}`, "DELETE"),
   comments: (tid: number) => request<Comment[]>(`/tasks/${tid}/comments`),
