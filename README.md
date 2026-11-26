@@ -67,7 +67,9 @@ Why 404 vs 403? JWT vs sessions trade-offs? Why are roles per organization? How 
 ## Live deployment (free tier)
 Open the frontend and click **Try demo (no sign-up)**. It creates a throwaway admin user and an isolated org with clearly synthetic sample data (2 projects, 8 tasks, 3 members).
 
-![TaskFlow board, live demo](docs/screenshot-board.png)
+![TaskFlow dashboard, live demo](docs/screenshot-dashboard.png)
+
+The v3 UI adds a dashboard, board, list view, projects, team and notifications pages, with dark mode.
 
 - Frontend (React, static, Vercel Hobby): https://taskflow-web-lilac.vercel.app
 - API (FastAPI as a Vercel Python function; interactive docs at `/docs`): https://taskflow-api-sepia-rho.vercel.app
