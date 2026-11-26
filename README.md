@@ -1,5 +1,7 @@
 # TaskFlow: multi-tenant SaaS project manager
 
+[![CI](https://github.com/ZeyadMohamed00/taskflow-saas/actions/workflows/ci.yml/badge.svg)](https://github.com/ZeyadMohamed00/taskflow-saas/actions/workflows/ci.yml)
+
 Mini Trello/Asana: organizations with roles (admin / manager / member), teams, projects, tasks with assignment, comments, notifications and a statistics dashboard.
 
 **Stack:** React 18 + TypeScript (Vite) · FastAPI · PostgreSQL · SQLAlchemy 2 · JWT · Pytest + Vitest · Docker.
