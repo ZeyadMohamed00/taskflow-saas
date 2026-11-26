@@ -9,7 +9,7 @@ Mini Trello/Asana: organizations with roles (admin / manager / member), teams, p
 |---|---|
 | Backend tests: 20 pytest tests | **Run and passing against real PostgreSQL 16** (embedded, via the `pgserver` package) |
 | Frontend: `npm run build` (tsc + vite) and 9 Vitest tests | **Run and passing** |
-| Frontend talking to the real backend in a browser | **Not done** (tests mock `fetch`; API is covered by pytest) |
+| Frontend talking to the real backend in a browser | **Done on the live deployment** (see Live deployment below). Vitest tests still mock `fetch` |
 | `docker build` / `docker compose up` | **Not run** (Docker unavailable where this was built). Files are written but unverified |
 | GitHub Actions workflow | In `ci/github-actions-ci.yml`, **not enabled and never run** (the push token lacked `workflow` scope) |
 
