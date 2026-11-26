@@ -1,6 +1,8 @@
-from datetime import datetime, date, timezone
-from sqlalchemy import String, ForeignKey, DateTime, Date, Text, UniqueConstraint, Boolean, Index
+from datetime import date, datetime, timezone
+
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Index, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from .db import Base
 
 
@@ -25,6 +27,7 @@ class Organization(Base):
 
 class Membership(Base):
     """User <-> Organization with a role: admin | manager | member."""
+
     __tablename__ = "memberships"
     __table_args__ = (UniqueConstraint("user_id", "org_id"),)
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -68,7 +71,9 @@ class Task(Base):
     status: Mapped[str] = mapped_column(String(20), default="todo")  # todo|doing|done
     priority: Mapped[str] = mapped_column(String(10), default="medium")  # low|medium|high
     due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
-    assignee_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    assignee_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id"), nullable=True, index=True
+    )
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     comments: Mapped[list["Comment"]] = relationship(cascade="all, delete-orphan")
@@ -87,7 +92,9 @@ class Notification(Base):
     __tablename__ = "notifications"
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
-    task_id: Mapped[int | None] = mapped_column(ForeignKey("tasks.id", ondelete="CASCADE"), nullable=True)
+    task_id: Mapped[int | None] = mapped_column(
+        ForeignKey("tasks.id", ondelete="CASCADE"), nullable=True
+    )
     text: Mapped[str] = mapped_column(String(300))
     read: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)

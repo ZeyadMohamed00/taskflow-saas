@@ -1,18 +1,38 @@
-from pathlib import Path
-from datetime import date
-from fastapi import FastAPI, Depends, HTTPException, Query
-from fastapi.responses import RedirectResponse
-from fastapi.middleware.cors import CORSMiddleware
 import os
+from datetime import date
+from pathlib import Path
+
+from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import func, or_, case
+from sqlalchemy import case, func, or_
 from sqlalchemy.orm import Session
 
-from .db import Base, engine, get_db
-from .models import User, Organization, Membership, Team, TeamMember, Project, Task, Comment, Notification
 from . import schemas as s
-from .security import hash_password, verify_password, create_token
-from .deps import current_user, membership, require, project_for, task_for, can_edit_task, check_assignee, team_in_org
+from .db import Base, engine, get_db
+from .deps import (
+    can_edit_task,
+    check_assignee,
+    current_user,
+    membership,
+    project_for,
+    require,
+    task_for,
+    team_in_org,
+)
+from .models import (
+    Comment,
+    Membership,
+    Notification,
+    Organization,
+    Project,
+    Task,
+    Team,
+    TeamMember,
+    User,
+)
+from .security import create_token, hash_password, verify_password
 
 DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
@@ -28,7 +48,9 @@ def create_app() -> FastAPI:
     # Frontend may be hosted on another origin (e.g. Vercel). Auth uses a Bearer header, not cookies,
     # so allowing origins does not expose cookie sessions. Restrict with ALLOWED_ORIGINS="https://a,https://b".
     origins = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "*").split(",") if o.strip()]
-    app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["*"], allow_headers=["*"])
+    app.add_middleware(
+        CORSMiddleware, allow_origins=origins, allow_methods=["*"], allow_headers=["*"]
+    )
 
     @app.get("/health")
     def health():
@@ -50,34 +72,78 @@ def create_app() -> FastAPI:
         """One-click demo: a fresh admin user plus an isolated org filled with clearly synthetic data."""
         import secrets
         from datetime import timedelta
+
         tag = secrets.token_hex(3)
         pw = hash_password(secrets.token_urlsafe(16))
         me_ = User(email=f"demo-{tag}@demo.invalid", name="Demo Admin", password_hash=pw)
-        mate1 = User(email=f"sample-manager-{tag}@demo.invalid", name="Sample Manager", password_hash=pw)
-        mate2 = User(email=f"sample-member-{tag}@demo.invalid", name="Sample Member", password_hash=pw)
-        db.add_all([me_, mate1, mate2]); db.flush()
-        org = Organization(name="Demo Co (synthetic demo data)"); db.add(org); db.flush()
-        db.add_all([Membership(user_id=me_.id, org_id=org.id, role="admin"),
-                    Membership(user_id=mate1.id, org_id=org.id, role="manager"),
-                    Membership(user_id=mate2.id, org_id=org.id, role="member")])
-        team = Team(org_id=org.id, name="Product"); db.add(team); db.flush()
+        mate1 = User(
+            email=f"sample-manager-{tag}@demo.invalid", name="Sample Manager", password_hash=pw
+        )
+        mate2 = User(
+            email=f"sample-member-{tag}@demo.invalid", name="Sample Member", password_hash=pw
+        )
+        db.add_all([me_, mate1, mate2])
+        db.flush()
+        org = Organization(name="Demo Co (synthetic demo data)")
+        db.add(org)
+        db.flush()
+        db.add_all(
+            [
+                Membership(user_id=me_.id, org_id=org.id, role="admin"),
+                Membership(user_id=mate1.id, org_id=org.id, role="manager"),
+                Membership(user_id=mate2.id, org_id=org.id, role="member"),
+            ]
+        )
+        team = Team(org_id=org.id, name="Product")
+        db.add(team)
+        db.flush()
         db.add_all([TeamMember(team_id=team.id, user_id=u.id) for u in (me_, mate1, mate2)])
         today = date.today()
         spec = {
-            "Website relaunch": [("Write homepage copy", "doing", "high", 2, mate2), ("Design hero section", "todo", "medium", 5, mate1),
-                                 ("Set up analytics", "done", "low", -3, me_), ("Fix mobile nav bug", "todo", "high", 1, mate2)],
-            "Mobile app v2": [("Plan release checklist", "doing", "medium", 7, mate1), ("Review crash reports", "todo", "high", 3, me_),
-                              ("Update onboarding screens", "done", "medium", -1, mate2), ("Draft changelog", "todo", "low", 10, None)],
+            "Website relaunch": [
+                ("Write homepage copy", "doing", "high", 2, mate2),
+                ("Design hero section", "todo", "medium", 5, mate1),
+                ("Set up analytics", "done", "low", -3, me_),
+                ("Fix mobile nav bug", "todo", "high", 1, mate2),
+            ],
+            "Mobile app v2": [
+                ("Plan release checklist", "doing", "medium", 7, mate1),
+                ("Review crash reports", "todo", "high", 3, me_),
+                ("Update onboarding screens", "done", "medium", -1, mate2),
+                ("Draft changelog", "todo", "low", 10, None),
+            ],
         }
         first = None
         for pname, tasks in spec.items():
-            pr = Project(org_id=org.id, team_id=team.id, name=pname, description="Synthetic demo project"); db.add(pr); db.flush()
+            pr = Project(
+                org_id=org.id, team_id=team.id, name=pname, description="Synthetic demo project"
+            )
+            db.add(pr)
+            db.flush()
             for title, st, pri, due, who in tasks:
-                tk = Task(project_id=pr.id, title=title, status=st, priority=pri, due_date=today + timedelta(days=due),
-                          assignee_id=who.id if who else None, created_by=me_.id, description="Demo task (synthetic).")
-                db.add(tk); db.flush(); first = first or tk
-        db.add(Comment(task_id=first.id, author_id=mate1.id, body="Let's get this done before Friday."))
-        db.add(Notification(user_id=me_.id, task_id=first.id, text="Sample Manager commented on 'Write homepage copy'"))
+                tk = Task(
+                    project_id=pr.id,
+                    title=title,
+                    status=st,
+                    priority=pri,
+                    due_date=today + timedelta(days=due),
+                    assignee_id=who.id if who else None,
+                    created_by=me_.id,
+                    description="Demo task (synthetic).",
+                )
+                db.add(tk)
+                db.flush()
+                first = first or tk
+        db.add(
+            Comment(task_id=first.id, author_id=mate1.id, body="Let's get this done before Friday.")
+        )
+        db.add(
+            Notification(
+                user_id=me_.id,
+                task_id=first.id,
+                text="Sample Manager commented on 'Write homepage copy'",
+            )
+        )
         db.commit()
         return s.Token(access_token=create_token(me_.id))
 
@@ -94,7 +160,9 @@ def create_app() -> FastAPI:
 
     # ---------------------------------------------------- organizations
     @app.post("/orgs", response_model=s.OrgOut, status_code=201)
-    def create_org(body: s.OrgIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    def create_org(
+        body: s.OrgIn, user: User = Depends(current_user), db: Session = Depends(get_db)
+    ):
         o = Organization(name=body.name)
         db.add(o)
         db.flush()
@@ -104,19 +172,34 @@ def create_app() -> FastAPI:
 
     @app.get("/orgs", response_model=list[s.OrgOut])
     def list_orgs(user: User = Depends(current_user), db: Session = Depends(get_db)):
-        rows = (db.query(Organization, Membership.role).join(Membership, Membership.org_id == Organization.id)
-                .filter(Membership.user_id == user.id).order_by(Organization.id).all())
+        rows = (
+            db.query(Organization, Membership.role)
+            .join(Membership, Membership.org_id == Organization.id)
+            .filter(Membership.user_id == user.id)
+            .order_by(Organization.id)
+            .all()
+        )
         return [s.OrgOut(id=o.id, name=o.name, role=r) for o, r in rows]
 
     @app.get("/orgs/{oid}/members", response_model=list[s.MemberOut])
     def list_members(oid: int, user: User = Depends(current_user), db: Session = Depends(get_db)):
         membership(db, user, oid)
-        rows = (db.query(User, Membership.role).join(Membership, Membership.user_id == User.id)
-                .filter(Membership.org_id == oid).order_by(User.id).all())
+        rows = (
+            db.query(User, Membership.role)
+            .join(Membership, Membership.user_id == User.id)
+            .filter(Membership.org_id == oid)
+            .order_by(User.id)
+            .all()
+        )
         return [s.MemberOut(user_id=u.id, email=u.email, name=u.name, role=r) for u, r in rows]
 
     @app.post("/orgs/{oid}/members", status_code=201)
-    def add_member(oid: int, body: s.MemberIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    def add_member(
+        oid: int,
+        body: s.MemberIn,
+        user: User = Depends(current_user),
+        db: Session = Depends(get_db),
+    ):
         require(membership(db, user, oid), "admin")
         target = db.query(User).filter_by(email=body.email.lower()).first()
         if not target:
@@ -128,7 +211,13 @@ def create_app() -> FastAPI:
         return {"user_id": target.id, "role": body.role}
 
     @app.patch("/orgs/{oid}/members/{uid}")
-    def change_role(oid: int, uid: int, body: s.MemberRoleIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    def change_role(
+        oid: int,
+        uid: int,
+        body: s.MemberRoleIn,
+        user: User = Depends(current_user),
+        db: Session = Depends(get_db),
+    ):
         require(membership(db, user, oid), "admin")
         m = db.query(Membership).filter_by(user_id=uid, org_id=oid).first()
         if not m:
@@ -143,7 +232,9 @@ def create_app() -> FastAPI:
 
     # ------------------------------------------------------------ teams
     @app.post("/orgs/{oid}/teams", response_model=s.TeamOut, status_code=201)
-    def create_team(oid: int, body: s.TeamIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    def create_team(
+        oid: int, body: s.TeamIn, user: User = Depends(current_user), db: Session = Depends(get_db)
+    ):
         require(membership(db, user, oid), "manager")
         t = Team(org_id=oid, name=body.name)
         db.add(t)
@@ -156,7 +247,13 @@ def create_app() -> FastAPI:
         return db.query(Team).filter_by(org_id=oid).order_by(Team.id).all()
 
     @app.post("/orgs/{oid}/teams/{tid}/members", status_code=201)
-    def add_team_member(oid: int, tid: int, body: s.TeamMemberIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    def add_team_member(
+        oid: int,
+        tid: int,
+        body: s.TeamMemberIn,
+        user: User = Depends(current_user),
+        db: Session = Depends(get_db),
+    ):
         require(membership(db, user, oid), "manager")
         team_in_org(db, oid, tid)
         check_assignee(db, oid, body.user_id)
@@ -168,7 +265,12 @@ def create_app() -> FastAPI:
 
     # --------------------------------------------------------- projects
     @app.post("/orgs/{oid}/projects", response_model=s.ProjectOut, status_code=201)
-    def create_project(oid: int, body: s.ProjectIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    def create_project(
+        oid: int,
+        body: s.ProjectIn,
+        user: User = Depends(current_user),
+        db: Session = Depends(get_db),
+    ):
         require(membership(db, user, oid), "manager")
         if body.team_id is not None:
             team_in_org(db, oid, body.team_id)
@@ -178,8 +280,14 @@ def create_app() -> FastAPI:
         return p
 
     @app.get("/orgs/{oid}/projects", response_model=s.Page[s.ProjectOut])
-    def list_projects(oid: int, q: str = "", page: int = Query(1, ge=1), size: int = Query(20, ge=1, le=100),
-                      user: User = Depends(current_user), db: Session = Depends(get_db)):
+    def list_projects(
+        oid: int,
+        q: str = "",
+        page: int = Query(1, ge=1),
+        size: int = Query(20, ge=1, le=100),
+        user: User = Depends(current_user),
+        db: Session = Depends(get_db),
+    ):
         membership(db, user, oid)
         query = db.query(Project).filter_by(org_id=oid)
         if q:
@@ -197,7 +305,9 @@ def create_app() -> FastAPI:
 
     # ------------------------------------------------------------ tasks
     @app.post("/projects/{pid}/tasks", response_model=s.TaskOut, status_code=201)
-    def create_task(pid: int, body: s.TaskIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    def create_task(
+        pid: int, body: s.TaskIn, user: User = Depends(current_user), db: Session = Depends(get_db)
+    ):
         p, m = project_for(db, user, pid)
         if body.assignee_id is not None:
             check_assignee(db, p.org_id, body.assignee_id)
@@ -211,9 +321,17 @@ def create_app() -> FastAPI:
         return t
 
     @app.get("/projects/{pid}/tasks", response_model=s.Page[s.TaskOut])
-    def list_tasks(pid: int, q: str = "", status: s.Status | None = None, priority: s.Priority | None = None,
-                   assignee_id: int | None = None, page: int = Query(1, ge=1), size: int = Query(20, ge=1, le=100),
-                   user: User = Depends(current_user), db: Session = Depends(get_db)):
+    def list_tasks(
+        pid: int,
+        q: str = "",
+        status: s.Status | None = None,
+        priority: s.Priority | None = None,
+        assignee_id: int | None = None,
+        page: int = Query(1, ge=1),
+        size: int = Query(20, ge=1, le=100),
+        user: User = Depends(current_user),
+        db: Session = Depends(get_db),
+    ):
         project_for(db, user, pid)
         query = db.query(Task).filter_by(project_id=pid)
         if q:
@@ -229,7 +347,12 @@ def create_app() -> FastAPI:
         return s.Page[s.TaskOut](items=items, total=total, page=page, size=size)
 
     @app.patch("/tasks/{tid}", response_model=s.TaskOut)
-    def update_task(tid: int, body: s.TaskUpdate, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    def update_task(
+        tid: int,
+        body: s.TaskUpdate,
+        user: User = Depends(current_user),
+        db: Session = Depends(get_db),
+    ):
         t, p, m = task_for(db, user, tid)
         if not can_edit_task(m, user, t):
             raise HTTPException(403, "Members can only edit tasks assigned to or created by them")
@@ -256,7 +379,12 @@ def create_app() -> FastAPI:
 
     # --------------------------------------------------------- comments
     @app.post("/tasks/{tid}/comments", response_model=s.CommentOut, status_code=201)
-    def add_comment(tid: int, body: s.CommentIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    def add_comment(
+        tid: int,
+        body: s.CommentIn,
+        user: User = Depends(current_user),
+        db: Session = Depends(get_db),
+    ):
         t, p, m = task_for(db, user, tid)
         c = Comment(task_id=tid, author_id=user.id, body=body.body)
         db.add(c)
@@ -272,7 +400,9 @@ def create_app() -> FastAPI:
 
     # ---------------------------------------------------- notifications
     @app.get("/notifications", response_model=list[s.NotificationOut])
-    def notifications(unread: bool = False, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    def notifications(
+        unread: bool = False, user: User = Depends(current_user), db: Session = Depends(get_db)
+    ):
         q = db.query(Notification).filter_by(user_id=user.id)
         if unread:
             q = q.filter_by(read=False)
@@ -290,22 +420,43 @@ def create_app() -> FastAPI:
     @app.get("/orgs/{oid}/dashboard")
     def dashboard(oid: int, user: User = Depends(current_user), db: Session = Depends(get_db)):
         membership(db, user, oid)
-        base = db.query(Task).join(Project, Project.id == Task.project_id).filter(Project.org_id == oid)
+        base = (
+            db.query(Task)
+            .join(Project, Project.id == Task.project_id)
+            .filter(Project.org_id == oid)
+        )
         by_status = {"todo": 0, "doing": 0, "done": 0}
-        for st, n in (db.query(Task.status, func.count()).join(Project, Project.id == Task.project_id)
-                      .filter(Project.org_id == oid).group_by(Task.status)):
+        for st, n in (
+            db.query(Task.status, func.count())
+            .join(Project, Project.id == Task.project_id)
+            .filter(Project.org_id == oid)
+            .group_by(Task.status)
+        ):
             by_status[st] = n
         total = sum(by_status.values())
         overdue = base.filter(Task.due_date < date.today(), Task.status != "done").count()
         mine = base.filter(Task.assignee_id == user.id, Task.status != "done").count()
-        per_project = [{"project_id": pid, "name": name, "total": n, "done": d or 0}
-                       for pid, name, n, d in db.query(
-                           Project.id, Project.name, func.count(Task.id),
-                           func.sum(case((Task.status == "done", 1), else_=0)))
-                       .outerjoin(Task, Task.project_id == Project.id).filter(Project.org_id == oid)
-                       .group_by(Project.id, Project.name).order_by(Project.id)]
-        return {**by_status, "total": total, "percent_done": round(100 * by_status["done"] / total) if total else 0,
-                "overdue": overdue, "assigned_to_me": mine, "projects": per_project}
+        per_project = [
+            {"project_id": pid, "name": name, "total": n, "done": d or 0}
+            for pid, name, n, d in db.query(
+                Project.id,
+                Project.name,
+                func.count(Task.id),
+                func.sum(case((Task.status == "done", 1), else_=0)),
+            )
+            .outerjoin(Task, Task.project_id == Project.id)
+            .filter(Project.org_id == oid)
+            .group_by(Project.id, Project.name)
+            .order_by(Project.id)
+        ]
+        return {
+            **by_status,
+            "total": total,
+            "percent_done": round(100 * by_status["done"] / total) if total else 0,
+            "overdue": overdue,
+            "assigned_to_me": mine,
+            "projects": per_project,
+        }
 
     if DIST.exists():
         app.mount("/app", StaticFiles(directory=DIST, html=True), name="frontend")

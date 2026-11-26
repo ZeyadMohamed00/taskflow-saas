@@ -5,11 +5,13 @@ Permission matrix (enforced here, tested in tests/test_permissions.py):
   manager : create teams/projects/tasks, assign anyone, edit any task, delete tasks
   member  : create tasks, comment, edit ONLY tasks assigned to them or created by them
 """
-from fastapi import Depends, HTTPException, Header
-from sqlalchemy.orm import Session
+
 import jwt
+from fastapi import Depends, Header, HTTPException
+from sqlalchemy.orm import Session
+
 from .db import get_db
-from .models import User, Membership, Project, Task, Team
+from .models import Membership, Project, Task, Team, User
 from .security import decode_token
 
 RANK = {"member": 1, "manager": 2, "admin": 3}

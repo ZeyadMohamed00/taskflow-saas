@@ -4,6 +4,18 @@ Mini Trello/Asana: organizations with roles (admin / manager / member), teams, p
 
 **Stack:** React 18 + TypeScript (Vite) · FastAPI · PostgreSQL · SQLAlchemy 2 · JWT · Pytest + Vitest · Docker.
 
+## System overview
+```mermaid
+flowchart LR
+  U[Browser: React 18 + TypeScript SPA] -- JSON + Bearer JWT --> A[FastAPI app]
+  A --> P[deps.py: auth, tenant and role checks]
+  P --> S[SQLAlchemy 2 models]
+  S --> DB[(PostgreSQL)]
+  A -. serves build .-> U
+```
+
+**Tech stack:** React, TypeScript, Vite, FastAPI, SQLAlchemy 2, PostgreSQL, JWT, Pytest, Vitest, Docker.
+
 ## What was actually verified
 | Item | Status |
 |---|---|

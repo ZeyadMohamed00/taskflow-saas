@@ -1,5 +1,7 @@
 from fastapi.testclient import TestClient
+
 from app.main import app
+
 
 def test_demo_creates_seeded_workspace():
     c = TestClient(app)

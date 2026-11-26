@@ -1,6 +1,7 @@
 from datetime import date, datetime
-from typing import Literal, Generic, TypeVar
-from pydantic import BaseModel, Field, ConfigDict
+from typing import Generic, Literal, TypeVar
+
+from pydantic import BaseModel, ConfigDict, Field
 
 Status = Literal["todo", "doing", "done"]
 Priority = Literal["low", "medium", "high"]

@@ -2,13 +2,17 @@
 1. TEST_DATABASE_URL env var (e.g. the docker-compose db)
 2. a throwaway embedded PostgreSQL started by the `pgserver` package (pip install pgserver)
 3. SQLite fallback (a warning is printed; Postgres-specific behaviour is then untested)"""
-import os, tempfile, warnings
+
+import os
+import tempfile
+import warnings
 
 _server = None
 url = os.getenv("TEST_DATABASE_URL")
 if not url:
     try:
         import pgserver
+
         _server = pgserver.get_server(tempfile.mkdtemp())
         url = _server.get_uri().replace("postgresql://", "postgresql+psycopg2://", 1)
     except Exception as e:  # pragma: no cover
@@ -18,8 +22,9 @@ os.environ["DATABASE_URL"] = url
 
 import pytest
 from fastapi.testclient import TestClient
-from app.main import app
+
 from app.db import Base, engine
+from app.main import app
 
 
 @pytest.fixture()
@@ -39,7 +44,9 @@ def pytest_sessionfinish(session, exitstatus):
 
 
 def signup(client, email, name=""):
-    r = client.post("/auth/register", json={"email": email, "password": "password123", "name": name})
+    r = client.post(
+        "/auth/register", json={"email": email, "password": "password123", "name": name}
+    )
     assert r.status_code == 201
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
@@ -56,7 +63,14 @@ def org(client):
     users = {"admin": a}
     for key, role in [("manager", "manager"), ("member", "member"), ("member2", "member")]:
         h = signup(client, f"{key}@x.com", key)
-        assert client.post(f"/orgs/{o['id']}/members", json={"email": f"{key}@x.com", "role": role}, headers=a).status_code == 201
+        assert (
+            client.post(
+                f"/orgs/{o['id']}/members", json={"email": f"{key}@x.com", "role": role}, headers=a
+            ).status_code
+            == 201
+        )
         users[key] = h
-    p = client.post(f"/orgs/{o['id']}/projects", json={"name": "Website"}, headers=users["manager"]).json()
+    p = client.post(
+        f"/orgs/{o['id']}/projects", json={"name": "Website"}, headers=users["manager"]
+    ).json()
     return {"org": o, "project": p, "u": users}

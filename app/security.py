@@ -1,5 +1,9 @@
-import hashlib, hmac, os, secrets
+import hashlib
+import hmac
+import os
+import secrets
 from datetime import datetime, timedelta, timezone
+
 import jwt
 
 SECRET = os.getenv("JWT_SECRET", "dev-only-change-me-use-a-32-char-secret")
