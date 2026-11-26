@@ -94,3 +94,7 @@ The v3 UI adds a dashboard, board, list view, projects, team and notifications p
 ## End-to-end test
 
 `cd frontend && npx playwright install chromium && npm run e2e` starts the API on a throwaway SQLite database and drives the real UI with Playwright: register, create a workspace, project and task, move the task, log out and log in again. It runs in CI. Writing it exposed a real gap (a new user had no way to create an organization), which is now fixed with a "Create your workspace" screen.
+
+## Database migrations
+
+Schema changes are versioned with Alembic (`migrations/`, baseline `0001`, 9 tables). Point `DATABASE_URL` at the database and run `alembic upgrade head`. The baseline was generated from the models and checked by running upgrade, downgrade and upgrade again on SQLite; I did not run it against a fresh PostgreSQL instance here. The running app still creates missing tables on start.
