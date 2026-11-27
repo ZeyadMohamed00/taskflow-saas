@@ -21,11 +21,11 @@ flowchart LR
 ## What was actually verified
 | Item | Status |
 |---|---|
-| Backend tests: 20 pytest tests | **Run and passing against real PostgreSQL 16** (embedded, via the `pgserver` package) |
+| Backend tests: 21 pytest tests | **Run and passing against real PostgreSQL 16** (embedded, via the `pgserver` package) |
 | Frontend: `npm run build` (tsc + vite) and 9 Vitest tests | **Run and passing** |
 | Frontend talking to the real backend in a browser | **Done on the live deployment** (see Live deployment below). Vitest tests still mock `fetch` |
 | `docker build` / `docker compose up` | **Not run** (Docker unavailable where this was built). Files are written but unverified |
-| GitHub Actions workflow | In `ci/github-actions-ci.yml`, **not enabled and never run** (the push token lacked `workflow` scope) |
+| GitHub Actions workflow | `.github/workflows/ci.yml` runs on every push (badge above shows the current state) |
 
 ## Features
 Register/login (JWT) · organizations & per-org roles · teams · projects (search, pagination) · tasks (priority, due date, assignee, status, search/filter/pagination) · comments · notifications (on assignment and on comments) · dashboard (counts, % done, overdue, assigned to me, per-project progress) · REST API (`/docs`).
@@ -73,10 +73,7 @@ Tables: users, organizations, memberships(role), teams, team_members, projects, 
 7. **Invariants**: an org must keep at least one admin; assignees and teams must belong to the same org.
 
 ## Known limits / next steps
-No migrations (uses `create_all`; add Alembic), no email delivery for notifications (in-app only), no real-time updates (refresh/poll), OFFSET pagination gets slow for huge tables (use keyset), no rate limiting or refresh tokens, no file attachments.
-
-## Interview questions to prepare
-Why 404 vs 403? JWT vs sessions trade-offs? Why are roles per organization? How would you add Alembic migrations to a live DB? What breaks with OFFSET pagination at scale? Where would you add caching?
+Alembic migrations exist (see below) but the app still runs `create_all` on start. No email delivery for notifications (in-app only), no real-time updates (refresh/poll), OFFSET pagination gets slow for huge tables (use keyset), no refresh tokens. Login is throttled per email (5 failures in 5 minutes returns 429, in-process memory only, so each server instance counts separately). `JWT_SECRET` must be set; there is no built-in default secret, no file attachments.
 
 ## Live deployment (free tier)
 Open the frontend and click **Try demo (no sign-up)**. It creates a throwaway admin user and an isolated org with clearly synthetic sample data (2 projects, 8 tasks, 3 members).

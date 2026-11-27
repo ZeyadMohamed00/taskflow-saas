@@ -32,7 +32,14 @@ from .models import (
     TeamMember,
     User,
 )
-from .security import create_token, hash_password, verify_password
+from .security import (
+    create_token,
+    hash_password,
+    throttle_check,
+    throttle_fail,
+    throttle_reset,
+    verify_password,
+)
 
 DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
@@ -149,9 +156,19 @@ def create_app() -> FastAPI:
 
     @app.post("/auth/login", response_model=s.Token)
     def login(body: s.Credentials, db: Session = Depends(get_db)):
-        u = db.query(User).filter_by(email=body.email.lower()).first()
+        key = body.email.lower()
+        wait = throttle_check(key)
+        if wait:
+            raise HTTPException(
+                429,
+                "Too many failed attempts. Try again in a few minutes.",
+                headers={"Retry-After": str(wait)},
+            )
+        u = db.query(User).filter_by(email=key).first()
         if not u or not verify_password(body.password, u.password_hash):
+            throttle_fail(key)
             raise HTTPException(401, "Wrong email or password")
+        throttle_reset(key)
         return s.Token(access_token=create_token(u.id))
 
     @app.get("/me")

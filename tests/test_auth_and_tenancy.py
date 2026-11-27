@@ -57,3 +57,14 @@ def test_two_orgs_do_not_leak_projects(client, org):
         ]
     ]
     assert names == ["Website"]
+
+
+def test_login_throttled_after_repeated_failures(client):
+    body = {"email": "throttle@x.com", "password": "password123"}
+    assert client.post("/auth/register", json=body).status_code in (200, 201)
+    for _ in range(5):
+        r = client.post("/auth/login", json={**body, "password": "wrong-password"})
+        assert r.status_code == 401
+    blocked = client.post("/auth/login", json=body)
+    assert blocked.status_code == 429
+    assert int(blocked.headers["retry-after"]) > 0
