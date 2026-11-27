@@ -107,29 +107,50 @@ def create_app() -> FastAPI:
         db.flush()
         db.add_all([TeamMember(team_id=team.id, user_id=u.id) for u in (me_, mate1, mate2)])
         today = date.today()
+        # (title, status, priority, due offset in days, assignee, description)
         spec = {
             "Website relaunch": [
-                ("Write homepage copy", "doing", "high", 2, mate2),
-                ("Design hero section", "todo", "medium", 5, mate1),
-                ("Set up analytics", "done", "low", -3, me_),
-                ("Fix mobile nav bug", "todo", "high", 1, mate2),
+                ("Write homepage copy", "doing", "high", 2, mate2, "Hero, three feature blocks and the pricing teaser. Tone: plain and confident. Review with Omar before Thursday."),
+                ("Design hero section", "todo", "medium", 5, mate1, "Two layout options in Figma. Needs to work at 360px width first."),
+                ("Set up analytics", "done", "low", -3, me_, "Page views, signup funnel and form errors. No cookies banner needed with the current setup."),
+                ("Fix mobile nav bug", "todo", "high", 1, mate2, "Menu does not close after tapping a link on iOS Safari. Reproduced on iPhone 12."),
+                ("Redirect map for old URLs", "doing", "high", -1, me_, "Map the 48 old URLs to the new structure so search ranking is kept."),
+                ("Compress images and set up CDN", "todo", "medium", 6, mate1, "Target: homepage under 1.5 MB and LCP under 2.5 s on 4G."),
+                ("Accessibility pass", "todo", "medium", 9, mate2, "Contrast, focus order and form labels. Run axe on every template."),
+                ("Cookie-free contact form", "done", "low", -6, mate1, "Form posts to the API, rate limited, with a plain thank-you page."),
             ],
             "Mobile app v2": [
-                ("Plan release checklist", "doing", "medium", 7, mate1),
-                ("Review crash reports", "todo", "high", 3, me_),
-                ("Update onboarding screens", "done", "medium", -1, mate2),
-                ("Draft changelog", "todo", "low", 10, None),
+                ("Plan release checklist", "doing", "medium", 7, mate1, "Store listing, screenshots, release notes, staged rollout at 10% then 50%."),
+                ("Review crash reports", "todo", "high", 3, me_, "Top three crashes are all on Android 12 during the sync screen."),
+                ("Update onboarding screens", "done", "medium", -1, mate2, "Three screens instead of five. Skip option on every screen."),
+                ("Draft changelog", "todo", "low", 10, None, "Group by: new, improved, fixed. Keep each line under 80 characters."),
+                ("Offline mode for task list", "doing", "high", 4, mate2, "Queue edits locally and sync when the connection returns. Conflict rule: last write wins, with a visible note."),
+                ("Dark theme polish", "todo", "low", 12, mate1, "Check every screen against the new palette. Charts need a separate pass."),
+                ("Push notification settings", "todo", "medium", 8, me_, "Per-project toggles and quiet hours."),
+                ("Migrate analytics events", "done", "medium", -4, me_, "Renamed 14 events and removed 6 that nobody used."),
+                ("Fix login loop after password reset", "done", "high", -2, mate2, "Token was cached from before the reset. Cleared on password change."),
+            ],
+            "Customer onboarding": [
+                ("Welcome email sequence", "doing", "medium", 3, mate1, "Day 0, day 2 and day 7. Each has one action and one link."),
+                ("Import from CSV", "todo", "high", 6, mate2, "Map columns, preview the first 20 rows, show row-level errors."),
+                ("Sample project for new accounts", "todo", "low", 11, None, "Starter board with five tasks so the first screen is not empty."),
+                ("Onboarding checklist widget", "done", "medium", -5, me_, "Four steps with progress. Hides itself when complete."),
+                ("Support macros for top 10 questions", "todo", "low", 14, mate1, "Pull the questions from the last 90 days of tickets."),
+                ("Measure activation rate", "doing", "medium", 5, me_, "Activation = first task completed within 7 days of signup. Weekly chart on the dashboard."),
             ],
         }
-        pdesc = {"Website relaunch": "New marketing site: copy, design and analytics.", "Mobile app v2": "Second major release of the mobile app."}
+        pdesc = {
+            "Website relaunch": "New marketing site: copy, design, performance and analytics.",
+            "Mobile app v2": "Second major release of the mobile app, with offline support.",
+            "Customer onboarding": "Everything a new customer sees in their first week.",
+        }
         first = None
+        created = {}
         for pname, tasks in spec.items():
-            pr = Project(
-                org_id=org.id, team_id=team.id, name=pname, description=pdesc[pname]
-            )
+            pr = Project(org_id=org.id, team_id=team.id, name=pname, description=pdesc[pname])
             db.add(pr)
             db.flush()
-            for title, st, pri, due, who in tasks:
+            for title, st, pri, due, who, desc in tasks:
                 tk = Task(
                     project_id=pr.id,
                     title=title,
@@ -138,21 +159,27 @@ def create_app() -> FastAPI:
                     due_date=today + timedelta(days=due),
                     assignee_id=who.id if who else None,
                     created_by=me_.id,
-                    description="",
+                    description=desc,
                 )
                 db.add(tk)
                 db.flush()
+                created[title] = tk
                 first = first or tk
-        db.add(
-            Comment(task_id=first.id, author_id=mate1.id, body="Let's get this done before Friday.")
-        )
-        db.add(
-            Notification(
-                user_id=me_.id,
-                task_id=first.id,
-                text="Sample Manager commented on 'Write homepage copy'",
-            )
-        )
+        talk = [
+            ("Write homepage copy", mate1, "Let's get this done before Friday."),
+            ("Write homepage copy", mate2, "First draft is in the doc. The pricing teaser still needs a number."),
+            ("Fix mobile nav bug", me_, "Can you confirm it is only iOS Safari? Android looked fine for me."),
+            ("Fix mobile nav bug", mate2, "Only Safari. I think the click handler is blocked by the overlay."),
+            ("Redirect map for old URLs", mate1, "I added the blog URLs to the sheet. 12 left."),
+            ("Review crash reports", mate1, "The sync screen crash is the one to fix first, it is 70% of the volume."),
+            ("Offline mode for task list", me_, "Keep the conflict note short. Users only need to know something was overwritten."),
+            ("Import from CSV", mate1, "Customers send Excel files more than CSV. Worth accepting .xlsx later."),
+        ]
+        for title, author, text in talk:
+            db.add(Comment(task_id=created[title].id, author_id=author.id, body=text))
+        db.add(Notification(user_id=me_.id, task_id=created["Write homepage copy"].id, text=f"{mate1.name} commented on 'Write homepage copy'"))
+        db.add(Notification(user_id=me_.id, task_id=created["Fix mobile nav bug"].id, text=f"{mate2.name} replied on 'Fix mobile nav bug'"))
+        db.add(Notification(user_id=me_.id, task_id=created["Review crash reports"].id, text="You were assigned: Review crash reports"))
         db.commit()
         return s.Token(access_token=create_token(me_.id))
 

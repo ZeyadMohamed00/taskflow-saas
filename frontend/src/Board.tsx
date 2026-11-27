@@ -13,6 +13,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 /** Kanban lanes with drag and drop. Moves are only offered when the role allows them (the API enforces it again). */
 export function Board({ tasks, role, me, members = [], onMove, onOpen }: Props) {
   const [over, setOver] = useState<Status | null>(null);
+  const [drag, setDrag] = useState<number | null>(null);
   const who = (id: number | null) => (id ? members.find((m) => m.user_id === id)?.name || members.find((m) => m.user_id === id)?.email || "" : "");
   return (
     <div className="cols">
@@ -27,7 +28,7 @@ export function Board({ tasks, role, me, members = [], onMove, onOpen }: Props) 
             {col.map((t) => {
               const late = t.due_date && t.due_date < today() && t.status !== "done";
               return (
-                <article key={t.id} className={`tcard p-${t.priority}`} draggable={canEditTask(role, me, t)} onDragStart={(e) => e.dataTransfer.setData("text/plain", String(t.id))}>
+                <article key={t.id} className={`tcard p-${t.priority} ${drag === t.id ? "dragging" : ""}`} draggable={canEditTask(role, me, t)} onDragStart={(e) => { e.dataTransfer.setData("text/plain", String(t.id)); setDrag(t.id); }} onDragEnd={() => { setDrag(null); setOver(null); }}>
                   <button className="t" onClick={() => onOpen(t)}>{t.title}</button>
                   <div className="meta">
                     <Badge kind={t.priority === "high" ? "bad" : t.priority === "medium" ? "warn" : "ok"}>{t.priority}</Badge>

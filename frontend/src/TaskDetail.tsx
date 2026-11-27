@@ -32,29 +32,36 @@ export function TaskDetail({ task, members, me, role, onClose, onChanged }: Prop
   }
   const set = <K extends keyof Task>(k: K, v: Task[K]) => setDraft((d) => ({ ...d, [k]: v }));
 
+  const STATUS_TXT: Record<Status, string> = { todo: "To do", doing: "In progress", done: "Done" };
+  const pk = draft.priority === "high" ? "bad" : draft.priority === "medium" ? "warn" : "ok";
   return (
     <Modal drawer title="Task details" onClose={onClose}>
-      <div className="col" aria-label="Task details">
-        <label className="f">Title<input aria-label="Title" disabled={!editable} value={draft.title} onChange={(e) => set("title", e.target.value)} /></label>
-        <label className="f">Description<textarea aria-label="Description" disabled={!editable} value={draft.description} onChange={(e) => set("description", e.target.value)} placeholder="Add details, acceptance criteria, links..." /></label>
-        <div className="grid g2">
+      <div className="col td" aria-label="Task details">
+        <div className="row">
+          <span className={`pill s-${draft.status}`}>{STATUS_TXT[draft.status]}</span>
+          <span className={`badge ${pk}`}>{draft.priority} priority</span>
+          <span className="muted small sp">#{task.id}</span>
+        </div>
+        <input className="td-title" aria-label="Title" disabled={!editable} value={draft.title} onChange={(e) => set("title", e.target.value)} />
+        <div className="td-meta">
           <label className="f">Status<select disabled={!editable} value={draft.status} onChange={(e) => set("status", e.target.value as Status)}><option value="todo">To do</option><option value="doing">In progress</option><option value="done">Done</option></select></label>
           <label className="f">Priority<select disabled={!editable} value={draft.priority} onChange={(e) => set("priority", e.target.value as Priority)}><option>low</option><option>medium</option><option>high</option></select></label>
           <label className="f">Assignee<select disabled={!editable} value={draft.assignee_id ?? ""} onChange={(e) => set("assignee_id", e.target.value ? Number(e.target.value) : null)}><option value="">Unassigned</option>{members.map((m) => <option key={m.user_id} value={m.user_id}>{m.name || m.email}</option>)}</select></label>
           <label className="f">Due date<input type="date" disabled={!editable} value={draft.due_date ?? ""} onChange={(e) => set("due_date", e.target.value || null)} /></label>
         </div>
+        <label className="f">Description<textarea aria-label="Description" disabled={!editable} value={draft.description} onChange={(e) => set("description", e.target.value)} placeholder="Add details, acceptance criteria, links..." /></label>
         <div className="row">
           {editable && <button className="btn primary" onClick={save}>Save changes</button>}
           {atLeast(role, "manager") && <button className="btn danger sp" onClick={remove}>Delete</button>}
         </div>
         {error && <p role="alert" className="err">{error}</p>}
-        <h3 style={{ marginTop: 10 }}>Comments ({comments.length})</h3>
-        <div className="list">
+        <h3 style={{ marginTop: 14 }}>Activity &middot; {comments.length} comment{comments.length === 1 ? "" : "s"}</h3>
+        <div className="thread">
           {comments.length === 0 && <p className="muted small">No comments yet. Start the conversation.</p>}
           {comments.map((c) => (
-            <div key={c.id} className="row" style={{ alignItems: "flex-start" }}>
-              <Avatar name={who(c.author_id)} />
-              <div><b>{who(c.author_id)}</b> <span className="muted small">{c.created_at ? ago(c.created_at) : ""}</span><p>{c.body}</p></div>
+            <div key={c.id} className="cm">
+              <Avatar name={who(c.author_id)} size={26} />
+              <div className="cm-b"><div className="cm-h"><b>{who(c.author_id)}</b><span className="muted small">{c.created_at ? ago(c.created_at) : ""}</span></div><p>{c.body}</p></div>
             </div>
           ))}
         </div>

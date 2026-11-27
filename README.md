@@ -76,17 +76,19 @@ Tables: users, organizations, memberships(role), teams, team_members, projects, 
 Alembic migrations exist (see below) but the app still runs `create_all` on start. No email delivery for notifications (in-app only), no real-time updates (refresh/poll), OFFSET pagination gets slow for huge tables (use keyset), no refresh tokens. Login is throttled per email (5 failures in 5 minutes returns 429, in-process memory only, so each server instance counts separately). `JWT_SECRET` must be set; without it a key derived from `DATABASE_URL` is used (demo only, logged as a warning), and `APP_ENV=production` refuses to start, no file attachments.
 
 ## Live deployment (free tier)
-Open the frontend and click **Try demo (no sign-up)**. It creates a throwaway admin user and an isolated org with clearly synthetic sample data (2 projects, 8 tasks, 3 members).
+Open the frontend and click **Explore without signing up**. It creates a throwaway admin user and an isolated workspace with starter content (3 projects, 23 tasks, 3 members, comments). Seed data is generated, not real customer data.
 
-![TaskFlow dashboard, live demo](docs/screenshot-dashboard.png)
+![TaskFlow dashboard](docs/screenshot-dashboard.png)
+![Board](docs/screenshot-board.png)
+![Task details](docs/screenshot-task.png)
 
 The v3 UI adds a dashboard, board, list view, projects, team and notifications pages, with dark mode.
 
 - Frontend (React, static, Vercel Hobby): https://taskflow-web-lilac.vercel.app
 - API (FastAPI as a Vercel Python function; interactive docs at `/docs`): https://taskflow-api-sepia-rho.vercel.app
 - Database: Neon serverless PostgreSQL (free plan).
-- Verified in a real browser as a fresh visitor (Nov 26): Try demo loads the seeded board, task detail opens, and moving a task between columns updates the UI. Also `/health`, `/docs` and registration work against Neon.
-- Cold starts on the free tier can make the first request slow. The live DB may contain demo or test data.
+- Verified in a real browser as a fresh visitor (Nov 26): Explore without signing up loads the seeded board, task detail opens, and moving a task between columns updates the UI. Also `/health`, `/docs` and registration work against Neon.
+- Cold starts on the free tier can make the first request slow. The live database may contain test data.
 
 ## End-to-end test
 
