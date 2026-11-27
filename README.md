@@ -73,7 +73,7 @@ Tables: users, organizations, memberships(role), teams, team_members, projects, 
 7. **Invariants**: an org must keep at least one admin; assignees and teams must belong to the same org.
 
 ## Known limits / next steps
-Alembic migrations exist (see below) but the app still runs `create_all` on start. No email delivery for notifications (in-app only), no real-time updates (refresh/poll), OFFSET pagination gets slow for huge tables (use keyset), no refresh tokens. Login is throttled per email (5 failures in 5 minutes returns 429, in-process memory only, so each server instance counts separately). `JWT_SECRET` must be set; there is no built-in default secret, no file attachments.
+Alembic migrations exist (see below) but the app still runs `create_all` on start. No email delivery for notifications (in-app only), no real-time updates (refresh/poll), OFFSET pagination gets slow for huge tables (use keyset), no refresh tokens. Login is throttled per email (5 failures in 5 minutes returns 429, in-process memory only, so each server instance counts separately). `JWT_SECRET` must be set; without it a key derived from `DATABASE_URL` is used (demo only, logged as a warning), and `APP_ENV=production` refuses to start, no file attachments.
 
 ## Live deployment (free tier)
 Open the frontend and click **Try demo (no sign-up)**. It creates a throwaway admin user and an isolated org with clearly synthetic sample data (2 projects, 8 tasks, 3 members).
