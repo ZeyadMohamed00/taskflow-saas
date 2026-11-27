@@ -20,7 +20,7 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
   return (
     <div className="lp">
       <section className="lp-l">
-        <div className="brand"><span className="logo">T</span>TaskFlow</div>
+        <div className="brand"><span className="logo"><img src="/icon.svg" alt="" /></span>TaskFlow</div>
         <div>
           <h1>Work that moves, <em>on time.</em></h1>
           <p className="lede">Projects, tasks and teams in one calm workspace. Kanban boards, roles, comments and a dashboard that shows what is late.</p>

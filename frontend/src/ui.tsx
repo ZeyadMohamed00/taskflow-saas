@@ -96,7 +96,7 @@ export function Shell({ brand, tagline, nav, page, onNav, title, actions, footer
   return (
     <div className="shell">
       <aside className={`side ${open ? "open" : ""}`} aria-label="Sidebar">
-        <div className="brand"><span className="logo">{brand[0]}</span><div>{brand}{tagline && <div className="small muted" style={{ fontWeight: 400 }}>{tagline}</div>}</div></div>
+        <div className="brand"><span className="logo"><img src="/icon.svg" alt="" /></span><div>{brand}{tagline && <div className="small muted" style={{ fontWeight: 400 }}>{tagline}</div>}</div></div>
         {nav.map((n) => (
           <button key={n.id} className={`nav ${page === n.id ? "on" : ""}`} aria-current={page === n.id ? "page" : undefined} onClick={() => { onNav(n.id); setOpen(false); }}>
             <span aria-hidden style={{ width: 18, textAlign: "center" }}>{n.icon}</span>{n.label}{n.badge !== undefined && n.badge !== 0 && <span className="badge acc">{n.badge}</span>}
