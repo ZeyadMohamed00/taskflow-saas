@@ -150,7 +150,7 @@ function Workspace({ onLogout }: { onLogout: () => void }) {
                     <div key={p.project_id}><div className="row"><b>{p.name}</b><span className="muted small sp">{p.done}/{p.total} done</span></div><Bar pct={p.total ? (100 * p.done) / p.total : 0} /></div>
                   ))}</div>
                 </div>
-                <div className="card"><h3>Status mix</h3><Donut parts={[{ label: "To do", value: dash.todo, color: "#94a3b8" }, { label: "In progress", value: dash.doing, color: "#f59e0b" }, { label: "Done", value: dash.done, color: "#22c55e" }]} /></div>
+                <div className="card"><h3>Status mix</h3><Donut parts={[{ label: "To do", value: dash.todo, color: "#9a9688" }, { label: "In progress", value: dash.doing, color: "#b8700f" }, { label: "Done", value: dash.done, color: "#2f7a4f" }]} /></div>
               </div>
               <div className="card"><h3>My open tasks</h3>
                 {myTasks.length === 0 ? <Empty icon="✓" title="You're all caught up" hint="Nothing is assigned to you right now." /> : (

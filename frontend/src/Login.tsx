@@ -18,23 +18,34 @@ export function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
   const submit = (e: FormEvent) => { e.preventDefault(); run(() => api.auth(mode, email, password, name)); };
 
   return (
-    <div style={{ minHeight: "100%", display: "grid", alignItems: "center" }}>
-      <div className="hero">
-        <span className="logo" style={{ width: 52, height: 52, fontSize: 24, borderRadius: 14 }}>T</span>
-        <h1>TaskFlow</h1>
-        <p>Projects, tasks and teams in one place. Kanban board, roles, comments and live dashboards.</p>
-        <button className="btn primary" style={{ padding: "12px 26px", fontSize: 15 }} disabled={busy} onClick={() => run(api.demo)}>{busy ? "Loading..." : "Try the live demo (no sign-up)"}</button>
-        <p className="small">The demo creates a throwaway workspace with clearly synthetic sample data.</p>
-        <form className="card authbox col" onSubmit={submit}>
-          <h3>{mode === "login" ? "Log in" : "Create an account"}</h3>
-          {mode === "register" && <label className="f">Name<input aria-label="Name" value={name} onChange={(e) => setName(e.target.value)} /></label>}
-          <label className="f">Email<input aria-label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
-          <label className="f">Password<input aria-label="Password" type="password" placeholder="8+ characters" value={password} onChange={(e) => setPassword(e.target.value)} /></label>
-          {error && <p role="alert" className="err">{error}</p>}
-          <button className="btn primary" type="submit" disabled={busy}>{mode === "login" ? "Log in" : "Register"}</button>
-          <button type="button" className="btn ghost sm" onClick={() => setMode(mode === "login" ? "register" : "login")}>{mode === "login" ? "New here? Create an account" : "Have an account? Log in"}</button>
-        </form>
-      </div>
+    <div className="lp">
+      <section className="lp-l">
+        <div className="brand"><span className="logo">T</span>TaskFlow</div>
+        <div>
+          <h1>Work that moves, <em>on time.</em></h1>
+          <p className="lede">Projects, tasks and teams in one calm workspace. Kanban boards, roles, comments and a dashboard that shows what is late.</p>
+        </div>
+        <div className="mini" aria-hidden>
+          <div><b>To do</b><i className="h">Fix checkout bug</i><i>Write release notes</i></div>
+          <div><b>In progress</b><i className="m">Onboarding flow</i><i>API rate limits</i></div>
+          <div><b>Done</b><i>Set up CI</i><i>Brand colors</i></div>
+        </div>
+      </section>
+      <section className="lp-r">
+        <div className="col authbox" style={{ gap: 14 }}>
+          <button className="btn primary" disabled={busy} onClick={() => run(api.demo)}>{busy ? "Loading..." : "Explore without signing up"}</button>
+          <div className="or">or</div>
+          <form className="col" onSubmit={submit}>
+            <h2>{mode === "login" ? "Log in" : "Create an account"}</h2>
+            {mode === "register" && <label className="f">Name<input aria-label="Name" value={name} onChange={(e) => setName(e.target.value)} /></label>}
+            <label className="f">Email<input aria-label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
+            <label className="f">Password<input aria-label="Password" type="password" placeholder="8+ characters" value={password} onChange={(e) => setPassword(e.target.value)} /></label>
+            {error && <p role="alert" className="err">{error}</p>}
+            <button className="btn" type="submit" disabled={busy}>{mode === "login" ? "Log in" : "Register"}</button>
+            <button type="button" className="btn ghost sm" onClick={() => setMode(mode === "login" ? "register" : "login")}>{mode === "login" ? "New here? Create an account" : "Have an account? Log in"}</button>
+          </form>
+        </div>
+      </section>
     </div>
   );
 }

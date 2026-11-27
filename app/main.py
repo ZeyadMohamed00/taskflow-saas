@@ -74,24 +74,25 @@ def create_app() -> FastAPI:
         db.commit()
         return s.Token(access_token=create_token(u.id))
 
-    @app.post("/auth/demo", response_model=s.Token, status_code=201)
-    def demo(db: Session = Depends(get_db)):
-        """One-click demo: a fresh admin user plus an isolated org filled with clearly synthetic data."""
+    @app.post("/auth/guest", response_model=s.Token, status_code=201)
+    @app.post("/auth/demo", response_model=s.Token, status_code=201, include_in_schema=False)
+    def guest(db: Session = Depends(get_db)):
+        """One-click guest workspace: a fresh admin user plus an isolated org with starter content."""
         import secrets
         from datetime import timedelta
 
         tag = secrets.token_hex(3)
         pw = hash_password(secrets.token_urlsafe(16))
-        me_ = User(email=f"demo-{tag}@demo.invalid", name="Demo Admin", password_hash=pw)
+        me_ = User(email=f"guest-{tag}@taskflow.invalid", name="Amira Hassan", password_hash=pw)
         mate1 = User(
-            email=f"sample-manager-{tag}@demo.invalid", name="Sample Manager", password_hash=pw
+            email=f"omar-{tag}@taskflow.invalid", name="Omar Khalil", password_hash=pw
         )
         mate2 = User(
-            email=f"sample-member-{tag}@demo.invalid", name="Sample Member", password_hash=pw
+            email=f"layla-{tag}@taskflow.invalid", name="Layla Nasser", password_hash=pw
         )
         db.add_all([me_, mate1, mate2])
         db.flush()
-        org = Organization(name="Demo Co (synthetic demo data)")
+        org = Organization(name="Northwind Studio")
         db.add(org)
         db.flush()
         db.add_all(
@@ -120,10 +121,11 @@ def create_app() -> FastAPI:
                 ("Draft changelog", "todo", "low", 10, None),
             ],
         }
+        pdesc = {"Website relaunch": "New marketing site: copy, design and analytics.", "Mobile app v2": "Second major release of the mobile app."}
         first = None
         for pname, tasks in spec.items():
             pr = Project(
-                org_id=org.id, team_id=team.id, name=pname, description="Synthetic demo project"
+                org_id=org.id, team_id=team.id, name=pname, description=pdesc[pname]
             )
             db.add(pr)
             db.flush()
@@ -136,7 +138,7 @@ def create_app() -> FastAPI:
                     due_date=today + timedelta(days=due),
                     assignee_id=who.id if who else None,
                     created_by=me_.id,
-                    description="Demo task (synthetic).",
+                    description="",
                 )
                 db.add(tk)
                 db.flush()

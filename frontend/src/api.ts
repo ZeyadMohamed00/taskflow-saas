@@ -37,7 +37,7 @@ export interface TaskQuery { q?: string; assignee_id?: number; status?: Status |
 export const api = {
   auth: (kind: "login" | "register", email: string, password: string, name = "") =>
     request<{ access_token: string }>(`/auth/${kind}`, "POST", { email, password, name }),
-  demo: () => request<{ access_token: string }>("/auth/demo", "POST", {}),
+  demo: () => request<{ access_token: string }>("/auth/guest", "POST", {}),
   me: () => request<Me>("/me"),
   orgs: () => request<Org[]>("/orgs"),
   createOrg: (name: string) => request<Org>("/orgs", "POST", { name }),

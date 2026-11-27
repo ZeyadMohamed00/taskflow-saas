@@ -64,9 +64,9 @@ describe("Board", () => {
 
 describe("App", () => {
   it("shows the landing page and starts the demo", async () => {
-    const calls = mockFetch({ "POST /auth/demo": { body: { access_token: "t" } }, ...appRoutes("admin", []) });
+    const calls = mockFetch({ "POST /auth/guest": { body: { access_token: "t" } }, ...appRoutes("admin", []) });
     render(<App />);
-    await userEvent.click(screen.getByRole("button", { name: /live demo/i }));
+    await userEvent.click(screen.getByRole("button", { name: /Explore without signing up/i }));
     await waitFor(() => expect(calls).toContain("GET /orgs"));
     expect(await screen.findByText(/Project progress/)).toBeInTheDocument();
   });

@@ -7,7 +7,7 @@ interface Props {
   onMove: (task: Task, status: Status) => void; onOpen: (task: Task) => void; onDelete?: (task: Task) => void;
 }
 const LABEL: Record<Status, string> = { todo: "To do", doing: "In progress", done: "Done" };
-const DOT: Record<Status, string> = { todo: "#94a3b8", doing: "#f59e0b", done: "#22c55e" };
+const DOT: Record<Status, string> = { todo: "#9a9688", doing: "#b8700f", done: "#2f7a4f" };
 const today = () => new Date().toISOString().slice(0, 10);
 
 /** Kanban lanes with drag and drop. Moves are only offered when the role allows them (the API enforces it again). */
